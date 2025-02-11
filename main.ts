@@ -156,6 +156,7 @@ export default class AutoSplitPlugin extends Plugin {
         }
 
         // 如果自动拆分且设置要求焦点在预览 Pane，则设置焦点
+        // @ts-ignore
         if (autoSplit && viewState.state.mode === this.settings.paneToFocus) {
           this.app.workspace.setActiveLeaf(rightLeaf, { focus: true });
         }
@@ -173,16 +174,17 @@ export default class AutoSplitPlugin extends Plugin {
 
       if (viewState.type !== 'markdown') return
 
+      const state = viewState.state as any;
+
       viewState.active = false
-      viewState.state.mode =
-        viewState.state.mode === 'preview' ? 'source' : 'preview'
+      state.mode = state.mode === 'preview' ? 'source' : 'preview'
 
       const firstPane = this.settings.editorFirst ? 'source' : 'preview'
 
       const newLeaf = this.app.workspace.createLeafBySplit(
         activeLeaf,
         direction,
-        autoSplit && viewState.state.mode === firstPane
+        autoSplit && state.mode === firstPane
       )
       await newLeaf.openFile(file, viewState)
 
@@ -190,7 +192,7 @@ export default class AutoSplitPlugin extends Plugin {
         activeLeaf.setGroupMember(newLeaf)
       }
 
-      if (autoSplit && viewState.state.mode === this.settings.paneToFocus) {
+      if (autoSplit && state.mode === this.settings.paneToFocus) {
         this.app.workspace.setActiveLeaf(newLeaf, { focus: true })
       }
     }
