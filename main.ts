@@ -117,7 +117,10 @@ export default class AutoSplitPlugin extends Plugin {
     });
 
     if (rightmostTabs != null) {
-        return this.app.workspace.createLeafInParent(rightmostTabs, (rightmostTabs as any).children.length);
+        const newLeaf = this.app.workspace.createLeafInParent(rightmostTabs, (rightmostTabs as any).children.length);
+        this.app.workspace.setActiveLeaf(newLeaf, { focus: true })
+
+        return newLeaf;
     }
 
     return null;
