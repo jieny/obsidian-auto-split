@@ -16,9 +16,15 @@
         "@rollup/plugin-node-resolve": "^15.2.3",
         "@rollup/plugin-typescript": "^11.1.6",
         "@types/node": "^22.2.0",
-        "obsidian": "^1.6.6",
+        "@types/react": "^19.0.8",
+        "@types/react-dom": "^19.0.3",
+        "obsidian": "^1.7.2",
         "rollup": "^4.20.0",
         "tslib": "^2.6.3",
         "typescript": "^5.5.4"
+    },
+    "dependencies": {
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
     }
 }
