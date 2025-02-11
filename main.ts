@@ -1,12 +1,14 @@
 import {
   App,
+  MarkdownView,
   Platform,
   Plugin,
   PluginSettingTab,
-  Setting,
-  MarkdownView,
   setIcon,
-  type TFile, WorkspaceLeaf, WorkspaceTabs,
+  Setting,
+  type TFile,
+  WorkspaceLeaf,
+  WorkspaceTabs,
 } from 'obsidian'
 
 type SplitDirectionSetting = 'vertical' | 'horizontal' | 'auto'
@@ -114,12 +116,11 @@ export default class AutoSplitPlugin extends Plugin {
       }
     });
 
-    if (rightmostTabs) {
-      // 返回 rightmostTabs 中最后一个 leaf
-      rightmostLeaf = (rightmostTabs as any).children[(rightmostTabs as any).children.length - 1] as WorkspaceLeaf;
+    if (rightmostTabs != null) {
+        return this.app.workspace.createLeafInParent(rightmostTabs, (rightmostTabs as any).children.length);
     }
 
-    return rightmostLeaf;
+    return null;
   }
 
   async splitActiveFile(file: TFile, autoSplit = false) {
@@ -136,6 +137,7 @@ export default class AutoSplitPlugin extends Plugin {
     // ★ 如果是 vertical 模式，则先检查是否已经存在右侧 Pane 组
     if (direction === 'vertical') {
       const rightLeaf = this.findRightPaneLeaf();  // 新增：查找已有的右侧 Pane
+
       if (rightLeaf) {
         // 如果找到了，就直接在右侧 Pane 中新建（以预览模式打开）
         const viewState = activeLeaf.getViewState();
