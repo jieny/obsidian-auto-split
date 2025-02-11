@@ -6,7 +6,7 @@ import {
   Setting,
   MarkdownView,
   setIcon,
-  type TFile,
+  type TFile, WorkspaceLeaf, WorkspaceTabs,
 } from 'obsidian'
 
 type SplitDirectionSetting = 'vertical' | 'horizontal' | 'auto'
@@ -89,6 +89,39 @@ export default class AutoSplitPlugin extends Plugin {
     await this.saveData(this.settings)
   }
 
+  /**
+   * 查找当前工作区里最右侧的 Pane（WorkspaceTabs），然后返回其中的 Leaf
+   */
+  private findRightPaneLeaf(): WorkspaceLeaf | null {
+    let rightmostTabs: WorkspaceTabs | null = null;
+    let rightmostLeaf: WorkspaceLeaf | null = null;
+
+    // 遍历所有 leaf
+    this.app.workspace.iterateAllLeaves((leaf) => {
+      const parentTabs = leaf.parent;
+      // 只考虑 WorkspaceTabs 类型
+      if (!(parentTabs instanceof WorkspaceTabs)) return;
+
+      // container 的类型是 WorkspaceSplit，但其类型声明中没有 children 属性，
+      // 因此需要通过类型断言访问 children
+      const container = parentTabs.parent;
+      if (container && (container as any).children && (container as any).children.length > 1) {
+        const children = (container as any).children;
+        // 如果当前的 WorkspaceTabs 是 container 的最后一个子项，则认为它位于右侧
+        if (children[children.length - 1] === parentTabs) {
+          rightmostTabs = parentTabs;
+        }
+      }
+    });
+
+    if (rightmostTabs) {
+      // 返回 rightmostTabs 中最后一个 leaf
+      rightmostLeaf = (rightmostTabs as any).children[(rightmostTabs as any).children.length - 1] as WorkspaceLeaf;
+    }
+
+    return rightmostLeaf;
+  }
+
   async splitActiveFile(file: TFile, autoSplit = false) {
     const activeLeaf =
       this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf
@@ -99,6 +132,38 @@ export default class AutoSplitPlugin extends Plugin {
     if (direction === 'auto') {
       direction = rootSize.width >= rootSize.height ? 'vertical' : 'horizontal'
     }
+
+    // ★ 如果是 vertical 模式，则先检查是否已经存在右侧 Pane 组
+    if (direction === 'vertical') {
+      const rightLeaf = this.findRightPaneLeaf();  // 新增：查找已有的右侧 Pane
+      if (rightLeaf) {
+        // 如果找到了，就直接在右侧 Pane 中新建（以预览模式打开）
+        const viewState = activeLeaf.getViewState();
+        if (viewState.type !== 'markdown') return;
+
+        // 切换状态为预览模式（这里将 active 设为 false）
+        const newState = {
+          ...viewState,
+          active: false,
+          state: { ...viewState.state, mode: 'preview' },
+        };
+
+        await rightLeaf.openFile(file, newState);
+
+        // 如果需要链接 Pane，则把当前的 activeLeaf 与 rightLeaf 设为一组
+        if (this.settings.linkPanes) {
+          activeLeaf.setGroupMember(rightLeaf);
+        }
+
+        // 如果自动拆分且设置要求焦点在预览 Pane，则设置焦点
+        if (autoSplit && viewState.state.mode === this.settings.paneToFocus) {
+          this.app.workspace.setActiveLeaf(rightLeaf, { focus: true });
+        }
+        // 找到右侧 Pane 后，不再新建 Pane，直接返回
+        return;
+      }
+    }
+    // ★ 如果没有找到（或不是 vertical 模式），则执行原有的新拆分逻辑
 
     if (
       (direction === 'vertical' ? rootSize.width : rootSize.height) >
